@@ -193,4 +193,8 @@ def verify_submission(sid: str, authorization: str = Header(None)):
     conn = sqlite3.connect(DB_PATH); c=conn.cursor()
     c.execute('UPDATE submissions SET verified=1 WHERE id=?', (sid,)); conn.commit(); conn.close()
     return JSONResponse({'ok':True})
+if __name__ == "__main__":
+    import os
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
 
