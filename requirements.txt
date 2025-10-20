@@ -1,4 +1,6 @@
 fastapi
+flask
+gunicorn
 uvicorn[standard]
 pillow
 numpy
