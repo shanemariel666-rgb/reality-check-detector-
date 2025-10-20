@@ -1,48 +1,31 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Reality Check — Verifier</title>
-  <link rel="manifest" href="/manifest.json">
-  <link rel="stylesheet" href="/css/style.css">
+  <meta charset="UTF-8" />
+  <title>Reality Check</title>
 </head>
 <body>
-  <nav class="top">
-    <img src="/static/images/icon-192.png" class="navlogo" alt="RC">
-    <div class="title">Reality Check</div>
-    <div class="nav-actions">
-      <a href="/login.html" class="link">Login</a>
-      <a href="/register.html" class="link">Register</a>
-    </div>
-  </nav>
-  <main class="container">
-    <header><h1>Reality Check</h1><p class="tag">Upload images or short videos. Get an explainable authenticity report.</p></header>
-    <section id="uploader" class="card">
-      <label class="dropzone" id="dropzone">
-        <input id="file" type="file" accept="image/*,video/*">
-        <div class="hint">Drop or tap to choose a file</div>
-      </label>
-      <div id="preview"></div>
-      <div class="controls">
-        <button id="loginPrompt" class="btn ghost">Sign in to submit</button>
-        <button id="analyze" class="btn" disabled>Analyze (requires login)</button>
-      </div>
-    </section>
+  <h1>Reality Check Detector</h1>
+  <form id="uploadForm">
+    <input type="file" id="fileInput" name="file" required />
+    <button type="submit">Analyze</button>
+  </form>
 
-    <section id="report" class="card hidden">
-      <h2>Report</h2>
-      <div id="summary"></div>
-      <pre id="details" class="details"></pre>
-      <a id="download" class="btn ghost" download="report.json">Download Report</a>
-    </section>
+  <pre id="result"></pre>
 
-    <section class="card">
-      <h3>Journalist workflow</h3>
-      <p>Sign in to track submissions, add notes, and generate a press verification report.</p>
-      <a href="/dashboard.html" class="btn">Open Press Dashboard</a>
-    </section>
-  </main>
-  <script src="/js/app.js"></script>
+  <script>
+    const form = document.getElementById('uploadForm');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const file = document.getElementById('fileInput').files[0];
+      const formData = new FormData();
+      formData.append('file', file);
+
+      document.getElementById('result').textContent = "Analyzing...";
+      const res = await fetch('/analyze', { method: 'POST', body: formData });
+      const data = await res.json();
+      document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+    });
+  </script>
 </body>
 </html>
