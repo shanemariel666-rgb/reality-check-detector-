@@ -6,87 +6,75 @@
   <title>Reality Check</title>
   <style>
     body {
+      background: #0d1117;
+      color: #e6edf3;
       font-family: system-ui, sans-serif;
       text-align: center;
-      padding: 50px;
-      background: #f5f5f5;
+      padding: 2rem;
     }
+    h1 { color: #58a6ff; }
     #result {
-      text-align: left;
-      white-space: pre-wrap;
-      background: #fff;
-      padding: 15px;
-      border-radius: 10px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      margin-top: 20px;
-      max-width: 600px;
-      margin-left: auto;
-      margin-right: auto;
+      margin-top: 2rem;
+      font-size: 1.1rem;
+      background: #161b22;
+      padding: 1rem;
+      border-radius: 8px;
+      display: inline-block;
+      max-width: 90%;
     }
     button {
-      background-color: #0066ff;
-      color: white;
+      margin-top: 1rem;
+      padding: 0.7rem 1.5rem;
       border: none;
-      padding: 10px 20px;
+      background: #238636;
+      color: white;
       border-radius: 6px;
       cursor: pointer;
-      font-size: 1rem;
     }
-    button:hover {
-      background-color: #0052cc;
-    }
+    button:hover { background: #2ea043; }
   </style>
 </head>
 <body>
-  <h1>Reality Check</h1>
-  <p>Upload an image or short video to check if it’s AI-generated or authentic.</p>
-  
-  <input type="file" id="fileInput" accept="image/*,video/*" />
-  <br><br>
-  <button onclick="analyzeFile()">Analyze</button>
-  <div id="result">Result will appear here.</div>
+  <h1>🧠 Reality Check</h1>
+  <p>Upload a photo to see if it's AI-generated or real.</p>
+
+  <input type="file" id="fileInput" accept="image/*" />
+  <br />
+  <button onclick="analyze()">Analyze</button>
+
+  <div id="result"></div>
 
   <script>
-  async function analyzeFile() {
-    const fileInput = document.getElementById('fileInput');
-    const resultDiv = document.getElementById('result');
-    const file = fileInput.files[0];
+    async function analyze() {
+      const fileInput = document.getElementById("fileInput");
+      const resultDiv = document.getElementById("result");
 
-    if (!file) {
-      resultDiv.textContent = "⚠️ Please select a file first.";
-      return;
-    }
-
-    resultDiv.textContent = "⏳ Uploading and analyzing...";
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const response = await fetch("/analyze", {
-        method: "POST",
-        body: formData
-      });
-
-      const text = await response.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (err) {
-        resultDiv.textContent = "⚠️ Server returned unexpected response:\n\n" + text;
+      if (!fileInput.files.length) {
+        resultDiv.innerText = "Please select a file first.";
         return;
       }
 
-      if (data.result) {
-        resultDiv.textContent = JSON.stringify(data.result, null, 2);
-      } else {
-        resultDiv.textContent = JSON.stringify(data, null, 2);
-      }
+      const formData = new FormData();
+      formData.append("file", fileInput.files[0]);
 
-    } catch (err) {
-      resultDiv.textContent = "❌ Error: " + err.message;
+      resultDiv.innerText = "Analyzing... please wait.";
+
+      try {
+        const response = await fetch("/analyze", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await response.json();
+        if (data.error) {
+          resultDiv.innerText = `Error: ${data.error}`;
+        } else {
+          resultDiv.innerText = JSON.stringify(data.result || data, null, 2);
+        }
+      } catch (err) {
+        resultDiv.innerText = "Server error or no response received.";
+      }
     }
-  }
   </script>
 </body>
 </html>
