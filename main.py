@@ -1,73 +1,39 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, render_template_string
+import requests
 import os
 
-app = Flask(__name__, static_folder='.', static_url_path='')
+app = Flask(__name__)
 
-# ===============================
-# ROUTES
-# ===============================
+# Replace this with your actual Hive API key
+HIVE_API_KEY = os.getenv("HIVE_API_KEY", "YOUR_HIVE_API_KEY_HERE")
 
 @app.route('/')
 def home():
-    return send_from_directory('.', 'index.html')
-
-@app.route('/login')
-def login():
-    return send_from_directory('.', 'login.html')
-
-@app.route('/register')
-def register():
-    return send_from_directory('.', 'register.html')
-
-@app.route('/dashboard')
-def dashboard():
-    return send_from_directory('.', 'dashboard.html')
-
-# Test route to confirm backend is running
-@app.route('/ping')
-def ping():
-    return jsonify({"status": "ok", "message": "Reality Check backend running!"})
-
-# Upload route (for images/videos)
-@app.route('/upload', methods=['POST'])
-def upload_file():
-    if 'file' not in request.files:
-        return jsonify({"error": "No file uploaded"}), 400
-
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({"error": "Empty filename"}), 400
-
-    upload_folder = 'uploads'
-    os.makedirs(upload_folder, exist_ok=True)
-    path = os.path.join(upload_folder, file.filename)
-    file.save(path)
-
-    # Placeholder for analysis logic
-    return jsonify({"message": f"File '{file.filename}' uploaded successfully!"})
-
-# ===============================
-# START SERVER
-# ===============================
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-import time
+    return render_template_string(open('index.html').read())
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
-    if 'file' not in request.files:
+    file = request.files.get('file')
+    if not file:
         return jsonify({"error": "No file uploaded"}), 400
-    file = request.files['file']
-    filename = file.filename
 
-    # (For now, simulate analysis)
-    time.sleep(2)
-    result = {
-        "filename": filename,
-        "authenticity_score": "98.7%",
-        "verdict": "Likely authentic",
-        "details": "No manipulation detected in metadata or visual noise patterns."
-    }
-    return jsonify(result)
-    app.run(host="0.0.0.0", port=port)
+    files = {'media': (file.filename, file.stream, file.mimetype)}
+    headers = {"Authorization": f"Token {HIVE_API_KEY}"}
+
+    response = requests.post(
+        "https://api.thehive.ai/api/v2/task/sync",
+        headers=headers,
+        files=files
+    )
+
+    if response.status_code == 200:
+        result = response.json()
+        return jsonify(result)
+    else:
+        return jsonify({
+            "error": "Hive API request failed",
+            "details": response.text
+        }), response.status_code
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
