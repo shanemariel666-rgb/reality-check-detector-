@@ -4,7 +4,7 @@ import os
 
 app = Flask(__name__)
 
-HUGGINGFACE_API = "https://api-inference.huggingface.co/models/huggingface-projects/ai-image-detector"
+HUGGINGFACE_API = "https://api-inference.huggingface.co/models/roberta-base-openai-detector"
 headers = {"Authorization": f"Bearer {os.getenv('HF_API_KEY')}"}
 
 @app.route("/analyze", methods=["POST"])
