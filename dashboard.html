@@ -1,0 +1,13 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dashboard - Reality Check</title><link rel="stylesheet" href="/css/style.css"></head><body>
+<nav class="top"><a href="/" class="link">← Home</a><div class="title">Press Dashboard</div><button id="logout" class="btn ghost">Logout</button></nav>
+<main class="container">
+  <h2>Submissions</h2>
+  <div id="subs">Loading submissions...</div>
+</main>
+<script>
+async function load(){ const token=localStorage.getItem('rc_token'); if(!token) { location.href='/login.html'; return; } const res=await fetch('/api/submissions',{headers:{'Authorization':'Bearer '+token}}); if(!res.ok){ document.getElementById('subs').innerText='Error loading'; return; } const data=await res.json(); const el=document.getElementById('subs'); el.innerHTML=''; data.forEach(s=>{ const div=document.createElement('div'); div.className='sub'; div.innerHTML=`<strong>${s.filename}</strong> — ${s.verdict} — ${s.score}% <br><em>${s.created_at}</em><br><button onclick="view('${s.id}')">View</button> <button onclick="verify('${s.id}')">Mark Verified</button>`; el.appendChild(div); }); }
+async function view(id){ const token=localStorage.getItem('rc_token'); const res=await fetch('/api/submission/'+id,{headers:{'Authorization':'Bearer '+token}}); const j=await res.json(); alert(JSON.stringify(j, null, 2)); }
+async function verify(id){ const token=localStorage.getItem('rc_token'); const res=await fetch('/api/verify/'+id,{method:'POST',headers:{'Authorization':'Bearer '+token}}); if(res.ok) load(); }
+document.getElementById('logout').addEventListener('click', ()=>{ localStorage.removeItem('rc_token'); location.href='/'; });
+load();
+</script></body></html>

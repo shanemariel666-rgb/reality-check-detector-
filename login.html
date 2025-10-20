@@ -1,0 +1,16 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Login - Reality Check</title><link rel="stylesheet" href="/css/style.css"></head><body>
+<main class="auth">
+  <h2>Login</h2>
+  <input id="email" placeholder="Email" type="email">
+  <input id="password" placeholder="Password" type="password">
+  <button id="login" class="btn">Login</button>
+  <p id="msg"></p>
+</main>
+<script>
+document.getElementById('login').addEventListener('click', async ()=>{
+  const email=document.getElementById('email').value, pwd=document.getElementById('password').value;
+  const res=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,pwd})});
+  const j=await res.json();
+  if(res.ok){ localStorage.setItem('rc_token', j.token); location.href='/'; } else { document.getElementById('msg').innerText=j.error || 'Login failed'; }
+});
+</script></body></html>

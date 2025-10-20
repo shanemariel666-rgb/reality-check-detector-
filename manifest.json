@@ -1,0 +1,20 @@
+{
+  "name": "Reality Check",
+  "short_name": "RealityCheck",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#061026",
+  "theme_color": "#2eb3ff",
+  "icons": [
+    {
+      "src": "/static/images/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
