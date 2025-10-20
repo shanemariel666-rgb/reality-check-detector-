@@ -78,23 +78,48 @@
   <pre id="result">Upload an image or video to analyze authenticity.</pre>
 
   <script>
-    const form = document.getElementById('uploadForm');
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const file = document.getElementById('fileInput').files[0];
-      if (!file) return;
-      const formData = new FormData();
-      formData.append('file', file);
+async function analyzeFile() {
+  const fileInput = document.getElementById('file');
+  const resultDiv = document.getElementById('result');
+  
+  if (!fileInput.files.length) {
+    resultDiv.textContent = "Please upload a file first.";
+    return;
+  }
 
-      document.getElementById('result').textContent = "Analyzing...";
-      try {
-        const res = await fetch('/analyze', { method: 'POST', body: formData });
-        const data = await res.json();
-        document.getElementById('result').textContent = JSON.stringify(data, null, 2);
-      } catch (err) {
-        document.getElementById('result').textContent = "Error: " + err.message;
-      }
+  const formData = new FormData();
+  formData.append("file", fileInput.files[0]);
+  resultDiv.textContent = "Analyzing... please wait.";
+
+  try {
+    const response = await fetch("/analyze", {
+      method: "POST",
+      body: formData
     });
-  </script>
-</body>
-</html>
+
+    const text = await response.text(); // read raw text first
+
+    // Try to parse safely
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (err) {
+      resultDiv.textContent = 
+        "⚠️ The server returned an unexpected response:\n\n" + text;
+      console.error("JSON parse error:", err, text);
+      return;
+    }
+
+    // Display clean result
+    if (data.result) {
+      resultDiv.textContent = JSON.stringify(data.result, null, 2);
+    } else {
+      resultDiv.textContent = JSON.stringify(data, null, 2);
+    }
+
+  } catch (err) {
+    resultDiv.textContent = "❌ Error contacting server: " + err.message;
+    console.error(err);
+  }
+}
+</script>
