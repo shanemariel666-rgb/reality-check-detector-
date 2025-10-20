@@ -15,27 +15,34 @@ def analyze():
     file = request.files["file"]
     image_bytes = file.read()
 
+    headers = {"Authorization": f"Bearer {os.getenv('HF_API_KEY')}"}
+
     try:
         response = requests.post(
             HUGGINGFACE_API,
             headers=headers,
             data=image_bytes,
-            timeout=30
+            timeout=60
         )
 
-        # Log the raw output for debugging
-        print("Hugging Face Response:", response.text)
+        if response.status_code == 404:
+            return jsonify({"error": "Model not found (404). Try a different model URL."}), 404
 
-        # Gracefully handle bad or empty responses
         if response.status_code != 200:
-            return jsonify({"error": f"Hugging Face returned {response.status_code}"}), 500
+            return jsonify({
+                "error": f"Hugging Face API error {response.status_code}",
+                "details": response.text
+            }), 500
 
-        result = response.json()
-        return jsonify({"success": True, "result": result})
+        try:
+            data = response.json()
+        except ValueError:
+            return jsonify({"error": "Invalid JSON from Hugging Face"}), 502
+
+        return jsonify(data)
 
     except requests.exceptions.Timeout:
-        return jsonify({"error": "Request timed out"}), 504
-
+        return jsonify({"error": "Hugging Face request timed out"}), 504
     except Exception as e:
         return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
 
