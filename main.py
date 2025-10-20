@@ -1,58 +1,49 @@
-from flask import Flask, request, jsonify, render_template_string
-import requests, os
+from flask import Flask, request, jsonify
+import requests
+import os
 
 app = Flask(__name__)
 
-HIVE_API_KEY = os.getenv("HIVE_API_KEY", "YOUR_HIVE_API_KEY_HERE")
+# ✅ Use your Hugging Face API key here (stored in environment variables)
+HF_API_KEY = os.getenv("HF_API_KEY")
 
 @app.route('/')
 def home():
-    try:
-        with open('index.html', 'r') as f:
-            return render_template_string(f.read())
-    except Exception as e:
-        return f"<h1>Error loading homepage</h1><p>{str(e)}</p>"
+    return 'Reality Check API is running. Use /analyze endpoint.'
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
-    file = request.files.get('file')
-    if not file:
+    # Check if file was sent
+    if 'file' not in request.files:
         return jsonify({"error": "No file uploaded"}), 400
 
-    files = {'media': (file.filename, file.stream, file.mimetype)}
-    headers = {"Authorization": f"Token {HIVE_API_KEY}"}
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "Empty filename"}), 400
 
-    # 1️⃣ Try Hive AI
     try:
+        # Send file to Hugging Face AI detector model
         response = requests.post(
-            "https://api.thehive.ai/api/v2/task/sync",
-            headers=headers,
-            files=files,
-            timeout=45
-        )
-        data = response.json()
-        if "output" in data:
-            return jsonify({"source": "hive", "result": data})
-    except Exception as e:
-        print("Hive failed:", e)
-
-    # 2️⃣ Fallback to HuggingFace (works for testing)
-    try:
-        # Reset the file pointer
-        file.stream.seek(0)
-        files = {"file": (file.filename, file.stream, file.mimetype)}
-
-        hf_response = requests.post(
-            "https://api-inference.huggingface.co/models/openai/clip-vit-base-patch32",
-            headers={"Authorization": "Bearer hf_FtFpsceYxExampleKey"},  # You can use a free one from HuggingFace
-            files=files,
-            timeout=45
+            "https://api-inference.huggingface.co/models/umm-maybe/AI-image-detector",
+            headers={"Authorization": f"Bearer {HF_API_KEY}"},
+            files={"file": (file.filename, file, file.content_type)},
+            timeout=60
         )
 
-        hf_data = hf_response.json()
-        return jsonify({"source": "huggingface", "result": hf_data})
+        # Try to parse Hugging Face response safely
+        try:
+            data = response.json()
+        except Exception:
+            return jsonify({"error": "Failed to parse response from AI model"}), 500
+
+        # Handle cases where model fails or errors
+        if response.status_code != 200:
+            return jsonify({"error": "AI model error", "details": data}), 500
+
+        return jsonify({"result": data}), 200
+
     except Exception as e:
-        return jsonify({"error": f"Both detectors failed: {str(e)}"}), 500
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == '__main__':
