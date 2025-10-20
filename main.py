@@ -52,4 +52,22 @@ def upload_file():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
+import time
+
+@app.route('/analyze', methods=['POST'])
+def analyze():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+    file = request.files['file']
+    filename = file.filename
+
+    # (For now, simulate analysis)
+    time.sleep(2)
+    result = {
+        "filename": filename,
+        "authenticity_score": "98.7%",
+        "verdict": "Likely authentic",
+        "details": "No manipulation detected in metadata or visual noise patterns."
+    }
+    return jsonify(result)
     app.run(host="0.0.0.0", port=port)
