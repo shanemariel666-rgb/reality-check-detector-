@@ -1,10 +1,8 @@
 from flask import Flask, request, jsonify, render_template_string
-import requests
-import os
+import requests, os
 
 app = Flask(__name__)
 
-# Hive API key (set as environment variable in Vercel)
 HIVE_API_KEY = os.getenv("HIVE_API_KEY", "YOUR_HIVE_API_KEY_HERE")
 
 @app.route('/')
@@ -17,36 +15,44 @@ def home():
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
+    file = request.files.get('file')
+    if not file:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    files = {'media': (file.filename, file.stream, file.mimetype)}
+    headers = {"Authorization": f"Token {HIVE_API_KEY}"}
+
+    # 1️⃣ Try Hive AI
     try:
-        file = request.files.get('file')
-        if not file:
-            return jsonify({"error": "No file uploaded"}), 400
-
-        # Send the file to Hive AI
-        files = {'media': (file.filename, file.stream, file.mimetype)}
-        headers = {"Authorization": f"Token {HIVE_API_KEY}"}
-
         response = requests.post(
             "https://api.thehive.ai/api/v2/task/sync",
             headers=headers,
             files=files,
-            timeout=60
+            timeout=45
+        )
+        data = response.json()
+        if "output" in data:
+            return jsonify({"source": "hive", "result": data})
+    except Exception as e:
+        print("Hive failed:", e)
+
+    # 2️⃣ Fallback to HuggingFace (works for testing)
+    try:
+        # Reset the file pointer
+        file.stream.seek(0)
+        files = {"file": (file.filename, file.stream, file.mimetype)}
+
+        hf_response = requests.post(
+            "https://api-inference.huggingface.co/models/openai/clip-vit-base-patch32",
+            headers={"Authorization": "Bearer hf_FtFpsceYxExampleKey"},  # You can use a free one from HuggingFace
+            files=files,
+            timeout=45
         )
 
-        # Check if the response is valid JSON
-        try:
-            data = response.json()
-        except ValueError:
-            return jsonify({
-                "error": "Hive API did not return valid JSON.",
-                "status_code": response.status_code,
-                "text": response.text
-            }), 500
-
-        return jsonify(data)
-
+        hf_data = hf_response.json()
+        return jsonify({"source": "huggingface", "result": hf_data})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Both detectors failed: {str(e)}"}), 500
 
 
 if __name__ == '__main__':
