@@ -1,54 +1,41 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import requests
-import os
 
 app = Flask(__name__)
 
-HUGGINGFACE_API = "https://api-inference.huggingface.co/models/roberta-base-openai-detector"
-headers = {"Authorization": f"Bearer {os.getenv('HF_API_KEY')}"}
+@app.route("/")
+def index():
+    return render_template("index.html")
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
     if "file" not in request.files:
         return jsonify({"error": "No file uploaded"}), 400
 
-    file = request.files["file"]
-    image_bytes = file.read()
-
-    headers = {"Authorization": f"Bearer {os.getenv('HF_API_KEY')}"}
+    image_bytes = request.files["file"].read()
+    HUGGINGFACE_API = "https://api-inference.huggingface.co/models/umm-maybe/AI-image-detector"
 
     try:
-        response = requests.post(
-            HUGGINGFACE_API,
-            headers=headers,
-            data=image_bytes,
-            timeout=60
-        )
-
-        if response.status_code == 404:
-            return jsonify({"error": "Model not found (404). Try a different model URL."}), 404
+        response = requests.post(HUGGINGFACE_API, data=image_bytes, timeout=60)
+        content_type = response.headers.get("content-type", "")
+        data = response.json() if "application/json" in content_type else {}
 
         if response.status_code != 200:
-            return jsonify({
-                "error": f"Hugging Face API error {response.status_code}",
-                "details": response.text
-            }), 500
+            return jsonify({"error": f"Model error {response.status_code}", "details": data}), 502
 
-        try:
-            data = response.json()
-        except ValueError:
-            return jsonify({"error": "Invalid JSON from Hugging Face"}), 502
+        label = data[0]["label"] if isinstance(data, list) and data else "Unknown"
+        score = data[0]["score"] if isinstance(data, list) and data else 0
 
-        return jsonify(data)
+        verdict = (
+            "✅ Real photo" if "real" in label.lower() and score > 0.6
+            else "⚠️ AI-generated"
+        )
 
-    except requests.exceptions.Timeout:
-        return jsonify({"error": "Hugging Face request timed out"}), 504
+        return jsonify({"verdict": verdict, "confidence": round(score, 3), "raw": data})
+
     except Exception as e:
-        return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
+        return jsonify({"error": f"Server failure: {str(e)}"}), 500
 
-@app.route("/")
-def home():
-    return "<h2>Reality Check API is running ✅</h2>"
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
