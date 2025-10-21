@@ -3,46 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Reality Check</title>
-  <style>
-    body {
-      background: #0d1117;
-      color: #e6edf3;
-      font-family: system-ui, sans-serif;
-      text-align: center;
-      padding: 2rem;
-    }
-    h1 { color: #58a6ff; }
-    #result {
-      margin-top: 2rem;
-      font-size: 1.1rem;
-      background: #161b22;
-      padding: 1rem;
-      border-radius: 8px;
-      display: inline-block;
-      max-width: 90%;
-    }
-    button {
-      margin-top: 1rem;
-      padding: 0.7rem 1.5rem;
-      border: none;
-      background: #238636;
-      color: white;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    button:hover { background: #2ea043; }
-  </style>
+  <title>Reality Check – AI Image Verification</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <h1>🧠 Reality Check</h1>
-  <p>Upload a photo to see if it's AI-generated or real.</p>
+  <div class="container">
+    <h1>🕵️ Reality Check</h1>
+    <p>Upload an image to verify if it’s <b>AI-generated</b> or <b>authentic</b>.</p>
 
-  <input type="file" id="fileInput" accept="image/*" />
-  <br />
-  <button onclick="analyze()">Analyze</button>
+    <input type="file" id="fileInput" accept="image/*" />
+    <button onclick="analyze()">Analyze</button>
 
-  <div id="result"></div>
+    <div id="result"></div>
+  </div>
+
+  <footer>
+    Reality Check © 2025 — Designed for journalists and fact-checkers
+  </footer>
 
   <script>
     async function analyze() {
@@ -50,14 +27,14 @@
       const resultDiv = document.getElementById("result");
 
       if (!fileInput.files.length) {
-        resultDiv.innerText = "Please select a file first.";
+        resultDiv.innerText = "Please select an image first.";
         return;
       }
 
       const formData = new FormData();
       formData.append("file", fileInput.files[0]);
 
-      resultDiv.innerText = "Analyzing... please wait.";
+      resultDiv.innerText = "Analyzing...";
 
       try {
         const response = await fetch("/analyze", {
@@ -66,13 +43,16 @@
         });
 
         const data = await response.json();
-        if (data.error) {
-          resultDiv.innerText = `Error: ${data.error}`;
+
+        if (data.verdict) {
+          resultDiv.innerHTML = `<strong>${data.verdict}</strong><br>Confidence: ${data.confidence}`;
+        } else if (data.error) {
+          resultDiv.innerText = "Error: " + data.error;
         } else {
-          resultDiv.innerText = JSON.stringify(data.result || data, null, 2);
+          resultDiv.innerText = "Unexpected response format.";
         }
       } catch (err) {
-        resultDiv.innerText = "Server error or no response received.";
+        resultDiv.innerText = "Network or server error.";
       }
     }
   </script>
